@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>California Congressional Districts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+
+    .district-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #1f78b4;
+      text-align: center;
+    }
+</style>
+
+  </style>
+</head>
+<body>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
+<script>
+  const map = L.map('map').setView([37.3, -119.5], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  const overlays = {};
+  const control = L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+
+  function addShpZip(url, name, color, show = true) {
+    shp(url).then(geojson => {
+      const boundaryLayer = L.geoJSON(geojson, {
+        style: { weight: 3, color, fillOpacity: 0 }
+      });
+
+      const labels = L.featureGroup();
+      boundaryLayer.eachLayer(lyr => {
+        const center = lyr.getBounds().getCenter();
+        const props = lyr.feature.properties;
+        const labelText = props.DISTRICT || props.DIST_NUM || props.DISTRICTID;
+        if (labelText) {
+          const label = L.marker(center, {
+            icon: L.divIcon({
+              className: "district-label",
+              html: labelText,
+              iconSize: [30, 20]
+            })
+          });
+          labels.addLayer(label);
+        }
+      });
+
+      overlays[name] = boundaryLayer;
+      overlays[name + " Labels"] = labels;
+      control.addOverlay(boundaryLayer, name);
+      control.addOverlay(labels, name + " Labels");
+
+      if (show) {
+        boundaryLayer.addTo(map);
+        map.fitBounds(boundaryLayer.getBounds());
+      }
+    });
+  }
+
+  const CURRENT_URL = "http://localhost:8000/ab604/ab604";
+  const PROPOSED_URL = "http://localhost:8000/Congressional_Districts_CA/Congressional_Districts_CA";
+
+  addShpZip(CURRENT_URL, "Current Districts (CRC 2021)", "#1f78b4", true);
+  addShpZip(PROPOSED_URL, "Proposed Districts (2025 Plan)", "#e31a1c", false);
+</script>
+</body>
+
+</html>
