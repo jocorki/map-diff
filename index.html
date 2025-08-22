@@ -13,9 +13,14 @@
     .district-label {
       font-size: 12px;
       font-weight: bold;
-      color: #1f78b4;
       text-align: center;
     }
+
+  .district-label { font-weight: 700; text-shadow: 1px 1px 2px #fff; }
+  .attr-table { border-collapse: collapse; }
+  .attr-table td { padding: 2px 6px; border-bottom: 1px solid #eee; }
+  .attr-table td:first-child { font-weight: 600; white-space: nowrap; }
+
 </style>
 
   </style>
@@ -36,7 +41,6 @@
   const darkMatterNoLbl = L.tileLayer.provider('CartoDB.DarkMatterNoLabels');
   const osm = L.tileLayer.provider('OpenStreetMap.Mapnik');
 
-  // group them in a control
   const baseLayers = {
     "Carto DarkMatter": darkMatter,
     "Carto DarkMatter No Labels": darkMatterNoLbl,
@@ -46,34 +50,99 @@
   L.control.layers(baseLayers, {}, { collapsed: false }).addTo(map);
   const overlays = {};
   const control = L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+  let lastSelected = null; 
 
-  function addShpZip(url, name, color, show = true) {
+  function addShpCurrent(url, name, show = true) {
     shp(url).then(geojson => {
       const boundaryLayer = L.geoJSON(geojson, {
-        style: { weight: 3, color, fillOpacity: 0 }
-      });
+        style: f => {
+          const p = f.properties || {};
+          const party = String(p.PARTY || "").trim().toUpperCase();
+          if (party.startsWith("D")) {
+            return { weight: 2, color: "#000080", fillColor: "#1f78b4", fillOpacity: 0.4 };
+          } else if (party.startsWith("R")) {
+            return { weight: 2, color: "#800000", fillColor: "#e31a1c", fillOpacity: 0.4 };
+          } else {
+            return { weight: 2, color: "#4B0082", fillColor: "#984ea3", fillOpacity: 0.4 };
+          }
+        },
+        onEachFeature: (feature, lyr) => {
+          const props = feature.properties || {};
 
-      const labels = L.featureGroup();
-      boundaryLayer.eachLayer(lyr => {
-        const center = lyr.getBounds().getCenter();
-        const props = lyr.feature.properties;
-        const labelText = props.DISTRICT || props.DIST_NUM || props.DISTRICTID;
-        if (labelText) {
-          const label = L.marker(center, {
-            icon: L.divIcon({
-              className: "district-label",
-              html: labelText,
-              iconSize: [30, 20]
-            })
-          });
-          labels.addLayer(label);
+          let html = `<b>${name}</b><br/><table style="border-collapse:collapse;">`;
+          for (const k in props) {
+            html += `<tr><td style="border:1px solid #ccc;padding:2px 6px;"><b>${k}</b></td>` +
+              `<td style="border:1px solid #ccc;padding:2px 6px;">${props[k]}</td></tr>`;
+          }
+          html += "</table>";
+
+          lyr.bindPopup(html, { maxWidth: 500 });
         }
       });
 
       overlays[name] = boundaryLayer;
-      overlays[name + " Labels"] = labels;
       control.addOverlay(boundaryLayer, name);
-      control.addOverlay(labels, name + " Labels");
+
+      if (show) {
+        boundaryLayer.addTo(map);
+        map.fitBounds(boundaryLayer.getBounds());
+      }
+    });
+  }
+  const palette32 = [
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+    "#bcbd22", "#17becf", "#393b79", "#637939",
+    "#8c6d31", "#843c39", "#7b4173", "#5254a3",
+    "#9c9ede", "#8ca252", "#bd9e39", "#ad494a",
+    "#a55194", "#6b6ecf", "#b5cf6b", "#e7ba52",
+    "#d6616b", "#ce6dbd", "#9c9ede", "#cedb9c",
+    "#e7cb94", "#de9ed6", "#3182bd", "#f33"
+  ];
+
+  // PROPOSED plain outlines
+  function addShpProposed(url, name, show = false) {
+    shp(url).then(geojson => {
+      const boundaryLayer = L.geoJSON(geojson, {
+        style: feature => {
+          const p = feature.properties || {};
+          const id = parseInt(p.DISTRICT || p.DIST_NUM || p.DISTRICTID || p.CongDist_1 || 0, 10);
+          const color = palette32[id % palette32.length];
+          return { weight: 2, color, fillOpacity: 0 };   // no fill initially
+        },
+        onEachFeature: (feature, lyr) => {
+          const props = feature.properties || {};
+          const id = props.DISTRICT || props.DIST_NUM || props.DISTRICTID || props.CongDist_1;
+          const color = palette32[parseInt(id || 0, 10) % palette32.length];
+
+          lyr.bindPopup(`<b>${name}</b><br/>District: ${id}`);
+
+          lyr.on('click', () => {
+            lyr.setStyle({
+              weight: 3,
+              color: color,
+              fillColor: color,
+              fillOpacity: 0.4
+            });
+          });
+
+          lyr.on('popupclose', () => {
+            lyr.setStyle({
+              weight: 2,
+              color: color,
+              fillOpacity: 0
+            });
+          });
+
+          lyr.on('mouseover', () => lyr.setStyle({ weight: 4 }));
+          lyr.on('mouseout', () => {
+            if (!lyr.isPopupOpen()) lyr.setStyle({ weight: 2, color: color, fillOpacity: 0 });
+          });
+        }
+      });
+
+      overlays[name] = boundaryLayer;
+      control.addOverlay(boundaryLayer, name);
 
       if (show) {
         boundaryLayer.addTo(map);
@@ -83,14 +152,14 @@
   }
 
   const PROPOSED_URL = "https://jocorki.github.io/map-diff/AB604/AB604";
-  const CURRENT_URL = "https://jocorki.github.io/map-diff/Congressional_Districts_CA/Congressional_Districts_CA";
+  const CURRENT_URL = "https://jocorki.github.io/map-diff/Congressional_Districts/Congressional_Districts";
 
     // const PROPOSED_URL = "http://localhost:8000/AB604/AB604";
-    // const CURRENT_URL = "http://localhost:8000/Congressional_Districts_CA/Congressional_Districts_CA";
+    // const CURRENT_URL = "http://localhost:8000/Congressional_Districts/Congressional_Districts";
 
 
-  addShpZip(CURRENT_URL, "Current Districts (CRC 2021)", "#1f78b4", true);
-  addShpZip(PROPOSED_URL, "Proposed Districts (2025 Plan)", "#e31a1c", false);
+  addShpCurrent(CURRENT_URL, "Current Districts (CRC 2021)", true);
+  addShpProposed(PROPOSED_URL, "Proposed Districts (2025 Plan)", "#ed5da7", false);
 </script>
 </body>
 
