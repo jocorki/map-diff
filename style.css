@@ -1,0 +1,54 @@
+html,
+body,
+#map {
+    height: 100%;
+    margin: 0;
+}
+
+.district-label {
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 1px 1px 2px #fff;
+}
+
+.attr-table {
+    border-collapse: collapse;
+}
+
+.attr-table td {
+    padding: 2px 6px;
+    border-bottom: 1px solid #eee;
+}
+
+.attr-table td:first-child {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.popup-scroll {
+    max-height: 50vh;
+    /* viewport-relative height */
+    overflow-y: auto;
+    /* vertical scrollbar */
+    -webkit-overflow-scrolling: touch;
+    /* smooth iOS scroll */
+    padding: 8px 10px;
+}
+
+.popup-scroll table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.popup-scroll td {
+    border-bottom: 1px solid #eee;
+    padding: 6px 4px;
+    vertical-align: top;
+}
+
+.popup-scroll td:first-child {
+    font-weight: 600;
+    width: 40%;
+    word-break: break-word;
+}
