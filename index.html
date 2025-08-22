@@ -83,7 +83,6 @@
           ];
           let html = `<b>${name}</b><br/><table style="border-collapse:collapse;">`;
           for (const k in props) {
-            if (ignore_keys.has(k.toLowerCase())) continue;
             html += `<tr><td style="border:1px solid #ccc;padding:2px 6px;"><b>${k}</b></td>` +
               `<td style="border:1px solid #ccc;padding:2px 6px;">${props[k]}</td></tr>`;
           }
