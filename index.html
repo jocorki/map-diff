@@ -21,6 +21,15 @@
   .attr-table td { padding: 2px 6px; border-bottom: 1px solid #eee; }
   .attr-table td:first-child { font-weight: 600; white-space: nowrap; }
 
+  .popup-scroll {
+      max-height: 50vh;       /* viewport-relative height */
+      overflow-y: auto;       /* vertical scrollbar */
+      -webkit-overflow-scrolling: touch; /* smooth iOS scroll */
+      padding: 8px 10px;
+    }
+    .popup-scroll table { border-collapse: collapse; width: 100%; }
+    .popup-scroll td { border-bottom: 1px solid #eee; padding: 6px 4px; vertical-align: top; }
+    .popup-scroll td:first-child { font-weight: 600; width: 40%; word-break: break-word; }
 </style>
 
   </style>
@@ -75,8 +84,7 @@
               `<td style="border:1px solid #ccc;padding:2px 6px;">${props[k]}</td></tr>`;
           }
           html += "</table>";
-
-          lyr.bindPopup(html, { maxWidth: 500 });
+          lyr.bindPopup(`<div class="popup-scroll">${html}</div>`, { maxWidth: 480 });
         }
       });
 
